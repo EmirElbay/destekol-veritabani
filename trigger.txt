@@ -1,0 +1,32 @@
+CREATE TRIGGER IF NOT EXISTS trg_Stok_Dusur_Talep_Onay
+AFTER UPDATE ON Talepler
+FOR EACH ROW
+WHEN (OLD.Durum NOT IN ('Onaylandi', 'Teslim_Edildi'))
+ AND (NEW.Durum IN ('Onaylandi', 'Teslim_Edildi'))
+BEGIN
+    UPDATE Ilanlar
+    SET Kalan_Adet = Kalan_Adet - NEW.Istenen_Adet
+    WHERE Ilan_ID = NEW.Ilan_ID;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_Ilan_Tukendi_Kontrol
+AFTER UPDATE OF Kalan_Adet ON Ilanlar
+FOR EACH ROW
+WHEN NEW.Kalan_Adet = 0
+BEGIN
+    UPDATE Ilanlar
+    SET Ilan_Durumu = 'Tukendi'
+    WHERE Ilan_ID = NEW.Ilan_ID;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_Stok_Iade_Talep_Iptal
+AFTER UPDATE ON Talepler
+FOR EACH ROW
+WHEN (OLD.Durum IN ('Onaylandi', 'Teslim_Edildi'))
+ AND (NEW.Durum IN ('Beklemede', 'Reddedildi'))
+BEGIN
+    UPDATE Ilanlar
+    SET Kalan_Adet = Kalan_Adet + OLD.Istenen_Adet,
+        Ilan_Durumu = CASE WHEN Ilan_Durumu = 'Tukendi' THEN 'Aktif' ELSE Ilan_Durumu END
+    WHERE Ilan_ID = OLD.Ilan_ID;
+END;
