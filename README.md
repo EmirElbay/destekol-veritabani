@@ -1,0 +1,1 @@
+# destekol-veritabani
